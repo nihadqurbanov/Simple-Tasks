@@ -1,0 +1,1401 @@
+{
+  "name": "Customer Support Ticket Bot (Reference Solution)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Support Ticket Bot — Reference Solution\n\n**Flow:** Telegram Trigger → Extract fields → Empty-message check → Intent Switch (billing / technical / currency-API / general fallback) → each branch logs to Google Sheets and replies via Telegram.\n\n**Before running:**\n1. Add your Telegram Bot credential (from @BotFather) to the Trigger + all Telegram Send nodes.\n2. Add your Google Sheets credential + spreadsheet/sheet ID to all 4 'Log to Sheet' nodes.\n3. Replace `YOUR_ADMIN_CHAT_ID` in the admin-notify node.\n4. Activate the workflow so the Telegram webhook registers.",
+        "height": 340,
+        "width": 620
+      },
+      "id": "81837009-936a-41da-920f-0a038b89ec99",
+      "name": "Sticky Note - Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "d38897b5-d315-4823-8bc5-25a22ff9cdff",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -32,
+        400
+      ],
+      "webhookId": "support-bot-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "1LaQJ6SPMTcnSAvu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "chatId",
+              "type": "number",
+              "value": "={{ $json.message.chat.id }}"
+            },
+            {
+              "id": "a2",
+              "name": "userId",
+              "type": "number",
+              "value": "={{ $json.message.from.id }}"
+            },
+            {
+              "id": "a3",
+              "name": "username",
+              "type": "string",
+              "value": "={{ $json.message.from.username || $json.message.from.first_name || 'unknown' }}"
+            },
+            {
+              "id": "a4",
+              "name": "messageText",
+              "type": "string",
+              "value": "={{ $json.message.text || '' }}"
+            },
+            {
+              "id": "a5",
+              "name": "messageTextLower",
+              "type": "string",
+              "value": "={{ ($json.message.text || '').toLowerCase() }}"
+            },
+            {
+              "id": "a6",
+              "name": "timestamp",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f310bcb8-256c-41b7-88e3-f2f1f44a98d5",
+      "name": "Extract Message Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.messageText.trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e1d00258-8b4d-44d2-b912-d9a5e5ce7104",
+      "name": "Is Message Empty?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1",
+              "name": "category",
+              "type": "string",
+              "value": "unclassified_empty"
+            },
+            {
+              "id": "e2",
+              "name": "replyText",
+              "type": "string",
+              "value": "It looks like your message was empty. Please describe your issue (e.g. billing, technical problem, or a currency question) and I'll route it to the right place."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4c9b887b-f931-4d35-b717-54259459d0b1",
+      "name": "Empty - Set Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Ni2IhdKUIyymwk6ILd412PWcPWvKMc0Bmh0RosVv8wU",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Tickets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $('Extract Message Data').item.json.timestamp }}",
+            "UserId": "={{ $('Extract Message Data').item.json.userId }}",
+            "Username": "={{ $('Extract Message Data').item.json.username }}",
+            "Category": "={{ $json.category }}",
+            "Message": "={{ $('Extract Message Data').item.json.messageText }}",
+            "Status": "handled"
+          }
+        },
+        "options": {}
+      },
+      "id": "9f06fb33-d011-4dc9-9589-a212f9a02123",
+      "name": "Empty - Log to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        928,
+        48
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "trFrF6yY9uy0yCDn",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extract Message Data').item.json.chatId }}",
+        "text": "={{ $('Empty - Set Reply').item.json.replyText }}",
+        "additionalFields": {}
+      },
+      "id": "4157eabc-67c9-4144-b5d6-08985de87c82",
+      "name": "Empty - Send Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1152,
+        48
+      ],
+      "webhookId": "5766d7a9-c2e6-4aac-8ec2-41d271c567c9",
+      "credentials": {
+        "telegramApi": {
+          "id": "1LaQJ6SPMTcnSAvu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "b1",
+                    "leftValue": "={{ $json.messageTextLower }}",
+                    "rightValue": "bill|invoice|payment|charge|subscription|refund",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "t1",
+                    "leftValue": "={{ $json.messageTextLower }}",
+                    "rightValue": "error|bug|not working|crash|technical|broken|issue",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "c1",
+                    "leftValue": "={{ $json.messageTextLower }}",
+                    "rightValue": "rate|currency|exchange|convert|usd|eur|azn",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "allMatchingOutputs": false
+        }
+      },
+      "id": "a53eb3ba-cf48-49bc-a7fd-06069b1063eb",
+      "name": "Classify Intent",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        688,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bs1",
+              "name": "category",
+              "type": "string",
+              "value": "billing"
+            },
+            {
+              "id": "bs2",
+              "name": "replyText",
+              "type": "string",
+              "value": "Thanks for reaching out about billing. Your ticket has been logged and our billing team will follow up within 24 hours."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "34bf1f9f-a342-484c-9d6b-c43b160329ad",
+      "name": "Billing - Set Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        928,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Ni2IhdKUIyymwk6ILd412PWcPWvKMc0Bmh0RosVv8wU",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Tickets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $('Extract Message Data').item.json.timestamp }}",
+            "UserId": "={{ $('Extract Message Data').item.json.userId }}",
+            "Username": "={{ $('Extract Message Data').item.json.username }}",
+            "Category": "={{ $json.category }}",
+            "Message": "={{ $('Extract Message Data').item.json.messageText }}",
+            "Status": "handled"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "UserId",
+              "displayName": "UserId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Username",
+              "displayName": "Username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "f2f09045-f043-4539-8ba6-90d4a236766e",
+      "name": "Billing - Log to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1152,
+        224
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "trFrF6yY9uy0yCDn",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extract Message Data').item.json.chatId }}",
+        "text": "={{ $('Billing - Set Reply').item.json.replyText }}",
+        "additionalFields": {}
+      },
+      "id": "ceeb2e52-1b97-4195-b036-22586fb8f518",
+      "name": "Billing - Send Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1408,
+        224
+      ],
+      "webhookId": "64f1011f-5bab-4382-8ee0-86b744df9642",
+      "credentials": {
+        "telegramApi": {
+          "id": "1LaQJ6SPMTcnSAvu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ts1",
+              "name": "category",
+              "type": "string",
+              "value": "technical"
+            },
+            {
+              "id": "ts2",
+              "name": "replyText",
+              "type": "string",
+              "value": "Thanks for the report. Our technical team has been notified and will investigate shortly."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ca408d61-be61-4fa5-83de-67012fabe12d",
+      "name": "Technical - Set Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        928,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Ni2IhdKUIyymwk6ILd412PWcPWvKMc0Bmh0RosVv8wU",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Tickets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $('Extract Message Data').item.json.timestamp }}",
+            "UserId": "={{ $('Extract Message Data').item.json.userId }}",
+            "Username": "={{ $('Extract Message Data').item.json.username }}",
+            "Category": "={{ $json.category }}",
+            "Message": "={{ $('Extract Message Data').item.json.messageText }}",
+            "Status": "handled"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "UserId",
+              "displayName": "UserId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Username",
+              "displayName": "Username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "5dec74b7-6535-4090-97b9-9d5b3a2c1d0c",
+      "name": "Technical - Log to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1152,
+        400
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "trFrF6yY9uy0yCDn",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extract Message Data').item.json.chatId }}",
+        "text": "={{ $('Technical - Set Reply').item.json.replyText }}",
+        "additionalFields": {}
+      },
+      "id": "3fe7408d-9a85-413d-ad9a-4be43f3daf65",
+      "name": "Technical - Send Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1600,
+        336
+      ],
+      "webhookId": "d68be056-9b02-41d3-85fc-dc61aea82106",
+      "credentials": {
+        "telegramApi": {
+          "id": "1LaQJ6SPMTcnSAvu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "5616685860",
+        "text": "=New TECHNICAL ticket from @{{ $('Extract Message Data').item.json.username }} (id {{ $('Extract Message Data').item.json.userId }}):\n\n{{ $('Extract Message Data').item.json.messageText }}",
+        "additionalFields": {}
+      },
+      "id": "15784f48-d941-4741-ae0f-b5c767b32adf",
+      "name": "Technical - Notify Admin (Bonus)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1600,
+        496
+      ],
+      "webhookId": "7b0cc3ce-07e2-4393-beed-e1dd4c953d72",
+      "credentials": {
+        "telegramApi": {
+          "id": "1LaQJ6SPMTcnSAvu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://open.er-api.com/v6/latest/USD",
+        "options": {}
+      },
+      "id": "2888af95-0bdc-49ca-8f1a-bf2aa058293c",
+      "name": "Currency - Call External API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        928,
+        736
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cif1",
+              "leftValue": "={{ $json.result }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "6df5157b-542d-4be0-9ea8-e4649233fe97",
+      "name": "Currency - Call Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1168,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "co1",
+              "name": "category",
+              "type": "string",
+              "value": "currency"
+            },
+            {
+              "id": "co2",
+              "name": "replyText",
+              "type": "string",
+              "value": "=Current exchange rates (base USD):\n1 USD = {{ $json.rates.EUR }} EUR\n1 USD = {{ $json.rates.AZN }} AZN\n1 USD = {{ $json.rates.RUB }} RUB"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1e946b25-4509-4c65-8675-65c39a5001df",
+      "name": "Currency - Set Reply (Success)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1408,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Ni2IhdKUIyymwk6ILd412PWcPWvKMc0Bmh0RosVv8wU",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Tickets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $('Extract Message Data').item.json.timestamp }}",
+            "UserId": "={{ $('Extract Message Data').item.json.userId }}",
+            "Username": "={{ $('Extract Message Data').item.json.username }}",
+            "Category": "={{ $json.category }}",
+            "Message": "={{ $('Extract Message Data').item.json.messageText }}",
+            "Status": "handled"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "UserId",
+              "displayName": "UserId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Username",
+              "displayName": "Username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "958ae466-86d9-48f8-b715-06a9c31aae29",
+      "name": "Currency - Log to Sheet (Success)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1648,
+        624
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "trFrF6yY9uy0yCDn",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extract Message Data').item.json.chatId }}",
+        "text": "={{ $('Currency - Set Reply (Success)').item.json.replyText }}",
+        "additionalFields": {}
+      },
+      "id": "712965ed-39d3-4cdd-9280-bca878c30765",
+      "name": "Currency - Send Reply (Success)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1888,
+        624
+      ],
+      "webhookId": "cb9bab68-1df5-4d38-8540-9aecc9bc8353",
+      "credentials": {
+        "telegramApi": {
+          "id": "1LaQJ6SPMTcnSAvu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cf1",
+              "name": "category",
+              "type": "string",
+              "value": "currency_api_failed"
+            },
+            {
+              "id": "cf2",
+              "name": "replyText",
+              "type": "string",
+              "value": "Sorry, I couldn't reach the exchange rate service right now. Please try again in a few minutes, or contact support directly if this keeps happening."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0eab4c9a-b2fa-42df-8d06-1ddaaebada22",
+      "name": "Currency - Set Reply (Failure)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1408,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Ni2IhdKUIyymwk6ILd412PWcPWvKMc0Bmh0RosVv8wU",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Tickets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $('Extract Message Data').item.json.timestamp }}",
+            "UserId": "={{ $('Extract Message Data').item.json.userId }}",
+            "Username": "={{ $('Extract Message Data').item.json.username }}",
+            "Category": "={{ $json.category }}",
+            "Message": "={{ $('Extract Message Data').item.json.messageText }}",
+            "Status": "api_error"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "UserId",
+              "displayName": "UserId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Username",
+              "displayName": "Username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "ffe85fa7-de06-446c-b6b0-b076606e365e",
+      "name": "Currency - Log to Sheet (Failure)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1648,
+        816
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "trFrF6yY9uy0yCDn",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extract Message Data').item.json.chatId }}",
+        "text": "={{ $('Currency - Set Reply (Failure)').item.json.replyText }}",
+        "additionalFields": {}
+      },
+      "id": "c3b830aa-b879-4363-9540-299cccc0a534",
+      "name": "Currency - Send Reply (Failure)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1888,
+        816
+      ],
+      "webhookId": "b6773235-e630-4790-9f32-b03b70bf75d8",
+      "credentials": {
+        "telegramApi": {
+          "id": "1LaQJ6SPMTcnSAvu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "g1",
+              "name": "category",
+              "type": "string",
+              "value": "general"
+            },
+            {
+              "id": "g2",
+              "name": "replyText",
+              "type": "string",
+              "value": "Thanks for your message! I've logged it as a general inquiry and a team member will get back to you soon. If this is about billing, a technical issue, or currency rates, try mentioning that keyword and I can route it faster."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a338c2c2-c929-4a8a-a196-37a083850fcf",
+      "name": "General - Set Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        928,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Ni2IhdKUIyymwk6ILd412PWcPWvKMc0Bmh0RosVv8wU",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Tickets",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $('Extract Message Data').item.json.timestamp }}",
+            "UserId": "={{ $('Extract Message Data').item.json.userId }}",
+            "Username": "={{ $('Extract Message Data').item.json.username }}",
+            "Category": "={{ $json.category }}",
+            "Message": "={{ $('Extract Message Data').item.json.messageText }}",
+            "Status": "handled"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "UserId",
+              "displayName": "UserId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Username",
+              "displayName": "Username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "e30b8636-70d4-4f73-8831-733110eeebd3",
+      "name": "General - Log to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1168,
+        1008
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "trFrF6yY9uy0yCDn",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extract Message Data').item.json.chatId }}",
+        "text": "={{ $('General - Set Reply').item.json.replyText }}",
+        "additionalFields": {}
+      },
+      "id": "de35d5fc-a8df-4ef8-bef8-92f930e8952d",
+      "name": "General - Send Reply",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1408,
+        1008
+      ],
+      "webhookId": "82dcfd88-e94b-4c71-a080-23ea34466757",
+      "credentials": {
+        "telegramApi": {
+          "id": "1LaQJ6SPMTcnSAvu",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Mentor Grading Checklist\n\n- [ ] Telegram Trigger shows green 'active' dot and a live test message fires it\n- [ ] Switch node has 3+ real rule outputs AND a wired fallback/default output\n- [ ] Every branch (incl. fallback) writes a row to the sheet with timestamp/user/category/message\n- [ ] HTTP Request node calls a real external API and the response is used in the reply\n- [ ] HTTP Request failure does NOT crash the workflow — check onError / IF-success branch\n- [ ] Empty message input is handled before reaching Switch\n- [ ] Exported JSON shows individually wired nodes, not a single collapsed template node\n- [ ] Screenshot of canvas matches submitted JSON",
+        "height": 320,
+        "width": 620
+      },
+      "id": "77fc14d3-b9ce-48c4-98a8-c449e79695e4",
+      "name": "Sticky Note - Grading Checklist",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        720
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Message Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message Data": {
+      "main": [
+        [
+          {
+            "node": "Is Message Empty?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Message Empty?": {
+      "main": [
+        [
+          {
+            "node": "Empty - Set Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Classify Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty - Set Reply": {
+      "main": [
+        [
+          {
+            "node": "Empty - Log to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Empty - Log to Sheet": {
+      "main": [
+        [
+          {
+            "node": "Empty - Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Intent": {
+      "main": [
+        [
+          {
+            "node": "Billing - Set Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Technical - Set Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Currency - Call External API",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "General - Set Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Billing - Set Reply": {
+      "main": [
+        [
+          {
+            "node": "Billing - Log to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Billing - Log to Sheet": {
+      "main": [
+        [
+          {
+            "node": "Billing - Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Technical - Set Reply": {
+      "main": [
+        [
+          {
+            "node": "Technical - Log to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Technical - Log to Sheet": {
+      "main": [
+        [
+          {
+            "node": "Technical - Send Reply",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Technical - Notify Admin (Bonus)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Currency - Call External API": {
+      "main": [
+        [
+          {
+            "node": "Currency - Call Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Currency - Call Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Currency - Set Reply (Success)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Currency - Set Reply (Failure)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Currency - Set Reply (Success)": {
+      "main": [
+        [
+          {
+            "node": "Currency - Log to Sheet (Success)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Currency - Log to Sheet (Success)": {
+      "main": [
+        [
+          {
+            "node": "Currency - Send Reply (Success)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Currency - Set Reply (Failure)": {
+      "main": [
+        [
+          {
+            "node": "Currency - Log to Sheet (Failure)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Currency - Log to Sheet (Failure)": {
+      "main": [
+        [
+          {
+            "node": "Currency - Send Reply (Failure)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "General - Set Reply": {
+      "main": [
+        [
+          {
+            "node": "General - Log to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "General - Log to Sheet": {
+      "main": [
+        [
+          {
+            "node": "General - Send Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e8f5e1a0-4b0b-4be5-86b0-e2dab39123f1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1ae60dd6403f44aa34382696e863ad228ee56e47f03917758ef7680dc8c82fd5"
+  },
+  "nodeGroups": [],
+  "id": "HewAp8tZwyMOw2yC",
+  "tags": []
+}

@@ -1,0 +1,165 @@
+{
+  "name": "Telegram Bot - Ollama Gemma (Yaddaşlı)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "2ac18cfd-e210-4490-b623-d34ccdd303df",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        -32
+      ],
+      "webhookId": "REPLACE_ME_WEBHOOK_ID",
+      "credentials": {
+        "telegramApi": {
+          "id": "AdI7VWUxOZr3u9fR",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gemma4:latest",
+        "options": {}
+      },
+      "id": "3eefffa6-d079-4cd0-b9c8-2231a2512f3c",
+      "name": "Ollama Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        96,
+        176
+      ],
+      "credentials": {
+        "ollamaApi": {
+          "id": "9ebW2VdnnuS5uLfK",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "contextWindowLength": 15
+      },
+      "id": "e3fb2174-cc26-4cfd-98f6-284bfec48628",
+      "name": "Söhbət Yaddaşı (Buffer Window)",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        288,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "Sən Telegram-da işləyən köməkçi botsan. Azərbaycan dilində, qısa və aydın cavab ver. İstifadəçinin əvvəlki mesajlarını (yaddaşdan) nəzərə al."
+        }
+      },
+      "id": "200a1ccb-7437-47d9-84eb-424074751816",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        192,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "id": "7ea33498-7672-4f91-8247-d4c8cad30f5b",
+      "name": "Telegram - Cavab Göndər",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        -32
+      ],
+      "webhookId": "89e994df-6c21-4488-b434-ab8d8542523e",
+      "credentials": {
+        "telegramApi": {
+          "id": "KwRrukzvzxDCwAYu",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Söhbət Yaddaşı (Buffer Window)": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Telegram - Cavab Göndər",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "929bf369-2a57-41a2-a0b4-f97a2bba6289",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e1c11ab165e728c4a9a21889aa25d26b66c9532eb5b12ccf6095a5eabb35fab"
+  },
+  "nodeGroups": [],
+  "id": "EN7VN2V3GCuzdX7u",
+  "tags": []
+}
