@@ -1,0 +1,26 @@
+[project]
+name = "w2app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Nihad Qurbanov", email = "nihadqurbanov.personal@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "pillow>=10.0",
+    "protobuf>=6.31.1",
+    "streamlit==1.63.0",
+    "streamlit-drawable-canvas==0.9.3",
+    "tensorflow-cpu>=2.16",
+]
+
+[project.scripts]
+w2app = "w2app:main"
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"

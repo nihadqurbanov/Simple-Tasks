@@ -1,0 +1,11 @@
+# Pinned versions verified to work together: streamlit-drawable-canvas uses
+# an older component API, and tensorflow needs a protobuf release the
+# canvas package's own pin doesn't allow -- these versions are compatible.
+streamlit==1.63.0
+streamlit-drawable-canvas==0.9.3
+tensorflow-cpu>=2.16
+protobuf>=6.31.1
+numpy>=1.26
+pandas>=2.0
+matplotlib>=3.8
+Pillow>=10.0
